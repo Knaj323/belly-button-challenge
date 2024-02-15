@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>D3 JSON Data Fetching Example</title>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+</head>
+<body>
+  <script>
+    d3.json("https://2u-data-curriculum-team.s3.amazonaws.com/dataviz-classroom/v1.1/14-Interactive-Web-Visualizations/02-Homework/samples.json")
+      .then(function(data) {
+        console.log(data); 
+      })
+      .catch(function(error) {
+        console.log("Error fetching JSON file:", error); 
+      });
+  </script>
+</body>
+</html>
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Charts</title>
+  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <style>
+    #metadata-box {
+      border: 1px solid #ccc;
+      padding: 10px;
+      margin-bottom: 20px;
+    }
+    #metadata-box h2 {
+      margin-top: 0;
+    }
+  </style>
+</head>
+<body>
+
+<div>
+  <select id="dropdown"></select>
+</div>
+
+<div id="bar-chart"></div>
+<div id="bubble-chart"></div>
+<div id="metadata-box">
+  <h2>Demographic Info</h2>
+  <div id="metadata"></div>
+</div>
+
+<script>
+  function createBarChart(sampleData) {
+    var trace = {
+      x: sampleData.sample_values.slice(0, 10).reverse(),
+      y: sampleData.otu_ids.slice(0, 10).map(otu_id => `OTU ${otu_id}`).reverse(),
+      text: sampleData.otu_labels.slice(0, 10).reverse(),
+      type: 'bar',
+      orientation: 'h'
+    };
+
+    var layout = {
+      title: 'Top 10 OTUs Found',
+      xaxis: { title: 'Sample Values' }
+    };
+
+    Plotly.newPlot('bar-chart', [trace], layout);
+  }
+
+  function createBubbleChart(sampleData) {
+    var trace = {
+      x: sampleData.otu_ids,
+      y: sampleData.sample_values,
+      text: sampleData.otu_labels,
+      mode: 'markers',
+      marker: {
+        size: sampleData.sample_values,
+        color: sampleData.otu_ids,
+        colorscale: 'Earth'
+      }
+    };
+
+    var layout = {
+      title: 'Bubble Chart for Samples',
+      xaxis: { title: 'OTU IDs' },
+      yaxis: { title: 'Sample Values' }
+    };
+
+    Plotly.newPlot('bubble-chart', [trace], layout);
+  }
+
+  function displayMetadata(metadata) {
+    var metadataDiv = d3.select("#metadata");
+    metadataDiv.selectAll("p")
+               .data(Object.entries(metadata))
+               .enter()
+               .append("p")
+               .text(function(d) { return d[0] + ": " + d[1]; });
+  }
+
+  d3.json("https://2u-data-curriculum-team.s3.amazonaws.com/dataviz-classroom/v1.1/14-Interactive-Web-Visualizations/02-Homework/samples.json")
+    .then(function(data) {
+      var dropdown = d3.select("#dropdown");
+      dropdown.selectAll("option")
+        .data(data.names)
+        .enter()
+        .append("option")
+        .attr("value", d => d)
+        .text(d => d);
+
+     
+      function updatePlots(selectedSampleId) {
+        var selectedSample = data.samples.find(sample => sample.id === selectedSampleId);
+        var selectedMetadata = data.metadata.find(metadata => metadata.id.toString() === selectedSampleId);
+        
+        d3.select("#bar-chart").selectAll("*").remove();
+        d3.select("#bubble-chart").selectAll("*").remove();
+        d3.select("#metadata").selectAll("*").remove();
+        createBarChart(selectedSample);
+        createBubbleChart(selectedSample);
+        displayMetadata(selectedMetadata);
+      }
+      updatePlots(data.names[0]);
+      dropdown.on("change", function() {
+        var selectedSampleId = d3.select(this).property("value");
+        updatePlots(selectedSampleId);
+      });
+    })
+    .catch(function(error) {
+      console.log("Error fetching JSON file:", error); 
+    });
+</script>
+
+</body>
+</html>
+
